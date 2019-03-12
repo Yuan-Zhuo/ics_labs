@@ -1,0 +1,45 @@
+# name: yuanzhuo
+# id: 517030910169
+
+    .pos 0
+    irmovq stack,%rsp
+    call main
+    halt
+
+    .align 8
+src:
+    .quad 0x00a
+    .quad 0x0b0
+    .quad 0xc00
+dest:
+    .quad 0x111
+    .quad 0x222
+    .quad 0x333
+
+main:
+    irmovq src,%rdi
+    irmovq dest,%rsi
+    irmovq $3,%rdx
+    call copy_block
+    ret
+
+copy_block:
+    irmovq $8,%r8
+    irmovq $1,%r9
+    irmovq $0,%r11
+    irmovq $0,%rax
+    jmp test
+cpy:
+    mrmovq (%rdi),%rcx
+    rmmovq %rcx,(%rsi)
+    xorq %rcx,%rax
+    subq %r9,%rdx
+    addq %r8,%rdi
+    addq %r8,%rsi
+test:
+    subq %r11,%rdx
+    jg cpy
+    ret
+
+    .pos 0x200
+stack:

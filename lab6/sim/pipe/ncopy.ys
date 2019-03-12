@@ -1,0 +1,257 @@
+#/* $begin ncopy-ys */
+##################################################################
+# ncopy.ys - Copy a src block of len words to dst.
+# Return the number of positive words (>0) contained in src.
+#
+# name: yuanzhuo
+# id: 517030910169
+#
+# Describe how and why you modified the baseline code.
+#
+##################################################################
+# Do not modify this portion
+# Function prologue.
+# %rdi = src, %rsi = dst, %rdx = len
+ncopy:
+
+##################################################################
+# You can modify this portion
+
+#
+# total bytes: 994
+#
+# average result on my virtual machine:
+#		Average CPE     7.50
+#		Score   59.9/60.0
+
+# begin
+
+	#xorq %rax,%rax		# init return value %rax to 0
+
+# Test_X:
+# 		test len to adapt Loop_X
+# Case_posX_numY :
+# 		During Loop_7, till now there're X positive vals in Y numbers which have tested
+# Case_posX_numY_2 :
+# 		During Loop_2, till now there're X positive vals in Y numbers which have tested
+# Loop_X:
+# 		move X vals from src to dst at one time
+	
+Test_7:					# test len in %rdx range
+	iaddq $-7,%rdx
+	jge Loop_7			# len >= 7, and len have been decreased by 7
+Test_7_2:
+	iaddq $5,%rdx
+	jge Loop_2			# 2 <= len < 7, and len have been decreased by 2
+Test_7_1:
+	iaddq $1,%rdx
+	je Loop_1
+	ret
+	
+
+Loop_2:							# Loop_2
+	mrmovq (%rdi),%r12			# move 2 vals from src to reg
+	mrmovq 8(%rdi),%r13
+	rmmovq %r12,(%rsi)			# move 2 vals from reg to dst
+	rmmovq %r13,8(%rsi)
+	iaddq $16,%rdi				# increase pointers to src and dst
+	iaddq $16,%rsi
+	andq %r12,%r12				# set cc of the first val
+	jle Case_nonpos_1
+	iaddq $1,%rax
+Case_nonpos_1:
+	andq %r13,%r13
+	jle Test_2
+	iaddq $1,%rax
+
+Test_2:
+	iaddq $-2,%rdx
+	jge Loop_2
+
+Test_1:
+	iaddq $1,%rdx				
+	jne Done					# len == -1, and go to Done
+
+#
+# else: go to Loop_1
+# len == 1
+# 
+# Because Loop_1 will execute no more than one time, so it's okay without increase %rdi, %rsi
+# And once it executes, there'll a bubble which may not be avoid.
+# 
+Loop_1:							# Loop_1
+	mrmovq (%rdi),%rcx		    # move 1 vals from src to reg
+	rmmovq %rcx,(%rsi)			# move 1 vals from reg to dst
+	andq %rcx,%rcx				# set cc of the first val
+	jle Done					# val <= 0, go to done immediately
+	iaddq $1,%rax
+	ret							# ret neither go to done for saving one clock cycle
+
+
+Loop_7:
+	mrmovq (%rdi),%r8			# move 7 vals from src to reg
+	mrmovq 8(%rdi),%r9
+	mrmovq 16(%rdi),%r10	
+	mrmovq 24(%rdi),%r11
+	mrmovq 32(%rdi),%r12
+	mrmovq 40(%rdi),%r13
+	mrmovq 48(%rdi),%r14	
+	rmmovq %r8,(%rsi)			# move 7 vals from reg to dst
+	rmmovq %r9,8(%rsi)
+	rmmovq %r10,16(%rsi)
+	rmmovq %r11,24(%rsi)
+	rmmovq %r12,32(%rsi)
+	rmmovq %r13,40(%rsi)
+	rmmovq %r14,48(%rsi)
+	iaddq $56,%rdi				# increase pointers to src and dst
+	iaddq $56,%rsi
+	andq %r8,%r8				# set cc of the first val
+
+#
+# Cases: 8 situations which need to add X (from 0 to 7) to %rax.
+#
+# Case_posX_numY
+# 		X, Y= 0 ~ 7;
+#
+# Here're 8 stages to go through for every num, and at the end of the whole cases, set %rax then go to test.
+# At each stage, test current register and go to next stages.
+#
+
+	jle Case_pos0_num1
+Case_pos1_num1:
+	andq %r9,%r9
+	jle Case_pos1_num2
+Case_pos2_num2:
+	andq %r10,%r10
+	jle Case_pos2_num3
+Case_pos3_num3:
+	andq %r11,%r11
+	jle Case_pos3_num4
+Case_pos4_num4:
+	andq %r12,%r12
+	jle Case_pos4_num5
+Case_pos5_num5:
+	andq %r13,%r13
+	jle Case_pos5_num6
+Case_pos6_num6:
+	andq %r14,%r14
+	jle Case_pos6_num7
+Case_pos7_num7:
+	iaddq $7,%rax				# 7 pos in 7 num
+	jmp Test_7
+
+Case_pos0_num1:
+	andq %r9,%r9
+	jle Case_pos0_num2
+Case_pos1_num2:
+	andq %r10,%r10
+	jle Case_pos1_num3
+Case_pos2_num3:
+	andq %r11,%r11
+	jle Case_pos2_num4
+Case_pos3_num4:
+	andq %r12,%r12
+	jle Case_pos3_num5
+Case_pos4_num5:
+	andq %r13,%r13
+	jle Case_pos4_num6
+Case_pos5_num6:
+	andq %r14,%r14
+	jle Case_pos5_num7
+Case_pos6_num7:
+	iaddq $6,%rax				# 6 pos in 7 num
+	iaddq $-7,%rdx
+	jge Loop_7
+	jmp Test_7_2
+
+Case_pos0_num2:
+	andq %r10,%r10
+	jle Case_pos0_num3
+Case_pos1_num3:
+	andq %r11,%r11
+	jle Case_pos1_num4
+Case_pos2_num4:
+	andq %r12,%r12
+	jle Case_pos2_num5
+Case_pos3_num5:
+	andq %r13,%r13
+	jle Case_pos3_num6
+Case_pos4_num6:
+	andq %r14,%r14
+	jle Case_pos4_num7
+Case_pos5_num7:
+	iaddq $5,%rax				# 5 pos in 7 num
+	iaddq $-7,%rdx
+	jge Loop_7
+	jmp Test_7_2
+
+Case_pos0_num3:
+	andq %r11,%r11
+	jle Case_pos0_num4
+Case_pos1_num4:
+	andq %r12,%r12
+	jle Case_pos1_num5
+Case_pos2_num5:
+	andq %r13,%r13
+	jle Case_pos2_num6
+Case_pos3_num6:
+	andq %r14,%r14
+	jle Case_pos3_num7
+Case_pos4_num7:
+	iaddq $4,%rax				# 4 pos in 7 num
+	iaddq $-7,%rdx
+	jge Loop_7
+	iaddq $5,%rdx
+	jge Loop_2
+	iaddq $1,%rdx
+	je Loop_1
+	ret
+
+Case_pos0_num4:
+	andq %r12,%r12
+	jle Case_pos0_num5
+Case_pos1_num5:
+	andq %r13,%r13
+	jle Case_pos1_num6
+Case_pos2_num6:
+	andq %r14,%r14
+	jle Case_pos2_num7
+Case_pos3_num7:
+	iaddq $3,%rax				# 3 pos in 7 num
+	iaddq $-7,%rdx
+	jge Loop_7
+	iaddq $5,%rdx
+	jge Loop_2
+	iaddq $1,%rdx
+	je Loop_1
+	ret
+
+Case_pos0_num5:
+	andq %r13,%r13
+	jle Case_pos0_num6
+Case_pos1_num6:
+	andq %r14,%r14
+	jle Case_pos1_num7
+Case_pos2_num7:
+	iaddq $2,%rax				# 2 pos in 7 num
+	iaddq $-7,%rdx
+	jge Loop_7
+	jmp Test_7_2
+
+Case_pos0_num6:
+	andq %r14,%r14
+	jle Test_7
+Case_pos1_num7:
+	iaddq $1,%rax				# 1 pos in 7 num
+	jmp Test_7
+
+
+##################################################################
+# Do not modify the following section of code
+# Function epilogue.
+Done:
+	ret
+##################################################################
+# Keep the following label at the end of your function
+End:
+#/* $end ncopy-ys */
