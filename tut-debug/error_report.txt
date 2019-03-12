@@ -1,0 +1,104 @@
+/*
+ * BUG#0
+ * description: 
+     miss semicolon
+ * location: 
+ *   int a = 10  (line 18)
+ * evidence: 
+ *   test.c:19: error: two or more data types in declaration specifiers
+ */
+
+BUG#1
+description:
+    miss semicolon
+location:
+    enum { buf_size = buf_nrec * 100 }
+evidence:
+    gen_sort.c:54:9: error: expected ‘;’, identifier or ‘(’ before ‘struct’
+
+
+BUG#2
+description:
+    miss semicolon
+location:
+    } record_t  (line 58)
+evidence:
+    gen_sort.c:60:1: error: expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘static’
+
+
+BUG#3
+description:
+    misspell or miss 'struct' tag   (record)
+location:
+    gen_rec(record_t *rec)  (line 114)
+evidence:
+    gen_sort.c:114:9: error: unknown type name ‘record’
+
+
+BUG#4
+description:
+    miss lib <stdio.h>
+location:
+    after  #include <stdlib.h>  (line 41)
+evidence:
+    gen_sort.c:122:2: warning: implicit declaration of function ‘sprintf’
+    gen_sort.c:157:2: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+    ...
+
+
+BUG#5
+description:
+    miss brackets
+location:
+    if (!file)  (line 189)
+evidence:
+    gen_sort.c:195:2: error: expected identifier or '('
+
+
+BUG#6
+description:
+    misspell  (j++)
+location:
+    for (j = 0; j < 10; i++ )  (line 126)
+evidence:
+	gen_sort.c:126:15: warning: variable 'j' used in loop condition not modified in loop body [-Wfor-loop-analysis] 
+
+
+
+BUG#7
+description:
+    wrong way to open file (fopen(fn,"w"))
+location:
+    FILE *file = fopen(fn, "r");  (line 188)
+evidence:
+    error: unable to open file xxx
+
+
+
+BUG#8
+description:
+    Wrong rec_len size  (rec_len = key_len + pad_len + recno_len)
+location:
+    enum { rec_len = key_len + recno_len};  (line 50)
+evidence:
+    segmentation  fault
+
+
+
+BUG#9
+description:
+    Termination condition error (cnt < buf_nrec)
+location:
+    for (cnt = 0; (cnt <= buf_nrec)  (line 147)
+evidence:
+    segmentation  fault
+
+
+
+BUG#10
+description:
+    Space length application error
+location:
+    char *buf = (char *)malloc(cnt * rec_max);  (line 181)
+evidence:
+    segmentation  fault
