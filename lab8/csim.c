@@ -7,9 +7,8 @@
 #include "cachelab.h"
 
 #define maxLine 32
-#define addrOff 4
+#define addrOff 3
 #define addrBits 64
-#define endOff 2
 
 #define validSpace (sizeof(bool))
 #define boolSymbol(ch) (ch == 'M')
@@ -80,18 +79,24 @@ bool simulator(char* filename, void* CACHE_ptr) {
         return false;
     }
 
-    char* strLine;
+    char* strLine = (char*)malloc(maxLine);
+    char* strAddr = (char*)malloc(maxLine);
     while (!feof(fp)) {
         fgets(strLine, maxLine, fp);
+
+        if (strLine == NULL)
+            break;
         if (strLine[0] == ' ')
             continue;
 
         int len = strlen(strLine);
-        char* strAddr;
-        strncpy(strAddr, strLine + addrOff, len - addrOff - endOff);
+        strncpy(strAddr, strLine + addrOff, len);
 
         simTrace(CACHE_ptr, boolSymbol(strLine[1]), atoi(strAddr));
     }
+
+    free(strLine);
+    free(strAddr);
 
     return true;
 }
