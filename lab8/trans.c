@@ -58,9 +58,12 @@ void trans(int M, int N, int A[N][M], int B[M][N]) {
 }
 
 /*
- * transpose_32_32 - Because a single block with 32 byte can store 8 int, so the
+ * transpose_32_32 -
+ *      logic:
+ *      Because a single block with 32 byte can store 8 int, so the
  *      max basic block is 8*8.
- *      To avoid conflict, just lazy the assignment to axle wire elements.
+ *      2.For every element axel wire, A and B will locate at the same set.
+ *      To avoid this, lazy the assignment to axle wire elements.
  */
 char trans_32_32_desc[] = "32x32-transpose";
 void trans_32_32(int M, int N, int A[N][M], int B[M][N]) {
@@ -71,15 +74,19 @@ void trans_32_32(int M, int N, int A[N][M], int B[M][N]) {
 
     for (blkRow = 0; blkRow < 4; ++blkRow) {
         for (blkCol = 0; blkCol < 4; ++blkCol) {
+            // basic block
             for (eleRow = 8 * blkRow; eleRow < 8 * blkRow + 8; ++eleRow) {
                 for (eleCol = 8 * blkCol; eleCol < 8 * blkCol + 8; ++eleCol) {
+                    // not in axel wire
                     if (eleRow != eleCol)
                         B[eleCol][eleRow] = A[eleRow][eleCol];
+                    // record index and tmp
                     else {
                         equalIdx = eleRow;
                         tmp0 = A[eleRow][eleCol];
                     }
                 }
+                // assign to axel wire element
                 if (blkRow == blkCol)
                     B[equalIdx][equalIdx] = tmp0;
             }
@@ -88,8 +95,11 @@ void trans_32_32(int M, int N, int A[N][M], int B[M][N]) {
 }
 
 /*
- * transpose_64_64 - Divide the 8*8 block into three,
- *                   and handle flow is 8*4 to 4*4
+ * transpose_64_64 -
+ *      conflict:
+ *      1.For every block in A, it will be evict where
+ *      A[i][j] to A[i][j+7] (j mod 8==0)
+ *      2.For every element axel wire, A and B will locate at the same set.
  */
 char trans_64_64_desc[] = "64x64-transpose";
 void trans_64_64(int M, int N, int A[N][M], int B[M][N]) {
@@ -151,8 +161,13 @@ void trans_64_64(int M, int N, int A[N][M], int B[M][N]) {
 }
 
 /*
- * transpose_61_67 - The same logic as 32*32, but the basic block is 4*4.
- *      To avoid conflict, just lazy the assignment to axle wire elements.
+ * transpose_61_67 -
+ *      conflict:
+ *      1.For every block in A, it will be evict when B access
+ *        B[i][j] where i mod 8==0.
+ *      To avoid this, transfer the basic block to 4*4.
+ *      2.For every element axel wire, A and B will locate at the same set.
+ *      To avoid this, lazy the assignment to axle wire elements.
  */
 char trans_61_67_desc[] = "61x67-transpose";
 void trans_61_67(int M, int N, int A[N][M], int B[M][N]) {
@@ -163,20 +178,24 @@ void trans_61_67(int M, int N, int A[N][M], int B[M][N]) {
 
     for (blkCol = 0; blkCol < 61; blkCol += 16) {
         for (blkRow = 0; blkRow < 67; blkRow += 16) {
+            // basic block
             for (eleRow = blkRow; (eleRow < 67) && (eleRow < blkRow + 16);
                  eleRow++) {
                 for (eleCol = blkCol; (eleCol < 61) && (eleCol < blkCol + 16);
                      eleCol++) {
+                    // not in axel wire
                     if (eleRow != eleCol) {
                         B[eleCol][eleRow] = A[eleRow][eleCol];
                     }
 
+                    // record index and tmp
                     else {
                         tmp0 = A[eleRow][eleCol];
                         equalIdx = eleRow;
                     }
                 }
 
+                // assign to axel wire element
                 if (blkRow == blkCol) {
                     B[equalIdx][equalIdx] = tmp0;
                 }
@@ -204,21 +223,16 @@ void registerFunctions() {
     registerTransFunction(trans_61_67, trans_61_67_desc);
 }
 
-/*
- * is_transpose- display the differences also
- */
-void is_transpose(int M, int N, int A[N][M], int B[M][N]) {
+int is_transpose(int M, int N, int A[N][M], int B[M][N]) {
     int i, j;
 
     for (i = 0; i < N; i++) {
         for (j = 0; j < M; ++j) {
             if (A[i][j] != B[j][i]) {
-                printf("%d!!%d\t", A[i][j], B[i][j]);
-            } else {
-                printf("%d\t", A[i][j]);
+                return 0;
             }
         }
         printf("\n");
     }
-    return;
+    return 1;
 }
