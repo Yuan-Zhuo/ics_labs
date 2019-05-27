@@ -1,6 +1,6 @@
 /*
  * proxy.c - ICS Web proxy
- * 
+ *
  *  id:517030910169
  *  name: yuanzhuo
  */
@@ -18,8 +18,7 @@
 /*
  * reqheaderinfo - http request basic info
  */
-struct reqheaderinfo
-{
+struct reqheaderinfo {
     char method[MAXENTRY];
     char server_ip[MAXENTRY];
     char path[MAXLINE];
@@ -29,8 +28,7 @@ struct reqheaderinfo
 /*
  * conninfo - thread need for executing
  */
-struct conninfo
-{
+struct conninfo {
     int fd;
     struct sockaddr_storage sockaddr_browser;
 };
@@ -43,33 +41,37 @@ sem_t printf_mutex;
 /*
  * Function prototypes
  */
-void *thread(struct conninfo *vargp);
-struct conninfo *new_conn(int fd, struct sockaddr_storage addr);
-int doit(int fd, struct sockaddr_storage *sockaddr_browser);
-int parse_req(char *buf, struct reqheaderinfo *reqp);
-size_t interact(struct reqheaderinfo *reqp, char *reqheadersp, int nreqheaders,
-                char *reqbodyp, int reqbodylen, int fd_send_resp);
-void eliminate_space(char *p);
+void* thread(struct conninfo* vargp);
+struct conninfo* new_conn(int fd, struct sockaddr_storage addr);
+int doit(int fd, struct sockaddr_storage* sockaddr_browser);
+int parse_req(char* buf, struct reqheaderinfo* reqp);
+size_t interact(struct reqheaderinfo* reqp,
+                char* reqheadersp,
+                int nreqheaders,
+                char* reqbodyp,
+                int reqbodylen,
+                int fd_send_resp);
+void eliminate_space(char* p);
 
-int parse_uri(char *uri, char *target_addr, char *path, char *port);
-void format_log_entry(char *logstring, struct sockaddr_in *sockaddr, char *uri,
+int parse_uri(char* uri, char* target_addr, char* path, char* port);
+void format_log_entry(char* logstring,
+                      struct sockaddr_in* sockaddr,
+                      char* uri,
                       size_t size);
 
 /*
  * main - Main routine for the proxy program
  */
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     // Init variables
     int listenfd, connfd;
     socklen_t clientlen;
     struct sockaddr_storage clientaddr;
-    struct conninfo *cur_conn;
+    struct conninfo* cur_conn;
     pthread_t tid;
 
     // Check arguments
-    if (argc != 2)
-    {
+    if (argc != 2) {
         fprintf(stderr, "Usage: %s <port number>\n", argv[0]);
         exit(0);
     }
@@ -82,14 +84,13 @@ int main(int argc, char **argv)
     // Listen
     listenfd = Open_listenfd(argv[1]);
 
-    while (1)
-    {
+    while (1) {
         // Connect
-        connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
+        connfd = Accept(listenfd, (SA*)&clientaddr, &clientlen);
         cur_conn = new_conn(connfd, clientaddr);
 
         // MultiThread
-        Pthread_create(&tid, NULL, (void *(*)(void *))thread, (void *)cur_conn);
+        Pthread_create(&tid, NULL, (void* (*)(void*))thread, (void*)cur_conn);
     }
     exit(0);
 }
@@ -97,8 +98,7 @@ int main(int argc, char **argv)
 /*
  *  thread routine
  */
-void *thread(struct conninfo *vargp)
-{
+void* thread(struct conninfo* vargp) {
     Pthread_detach(pthread_self());
 
     doit(vargp->fd, &vargp->sockaddr_browser);
@@ -111,8 +111,7 @@ void *thread(struct conninfo *vargp)
 /*
  *  doit - proxy handler
  */
-int doit(int fd, struct sockaddr_storage *sockaddr_browser)
-{
+int doit(int fd, struct sockaddr_storage* sockaddr_browser) {
     struct reqheaderinfo req;
     char reqheaders[MAXHEADERS][MAXLINE];
     int cnt, contentlen;
@@ -138,16 +137,17 @@ int doit(int fd, struct sockaddr_storage *sockaddr_browser)
     // read request body
     // Request with GET method needn't.(contentlen = 0)
     readlen = Rio_readnb(&rio, contentbuf, contentlen);
-    if (strcmp(req.method, "POST") == 0 && ((readlen != (ssize_t)contentlen) || (readlen == 0)))
+    if (strcmp(req.method, "POST") == 0 &&
+        ((readlen != (ssize_t)contentlen) || (readlen == 0)))
         return -1;
 
     // run as client to interact with server
-    size = interact(&req, (char *)reqheaders, cnt, contentbuf, contentlen, fd);
+    size = interact(&req, (char*)reqheaders, cnt, contentbuf, contentlen, fd);
     if (size == -1)
         return -1;
 
     sprintf(url, "http://%s:%s/%s", req.server_ip, req.port, req.path);
-    format_log_entry(logstring, (struct sockaddr_in *)sockaddr_browser, url,
+    format_log_entry(logstring, (struct sockaddr_in*)sockaddr_browser, url,
                      size);
 
     // safe print
@@ -161,9 +161,12 @@ int doit(int fd, struct sockaddr_storage *sockaddr_browser)
 /*
  *  interact - interact with server and send response to client
  */
-size_t interact(struct reqheaderinfo *reqp, char *reqheadersp, int nreqheaders,
-                char *reqbodyp, int reqbodylen, int fd_send_resp)
-{
+size_t interact(struct reqheaderinfo* reqp,
+                char* reqheadersp,
+                int nreqheaders,
+                char* reqbodyp,
+                int reqbodylen,
+                int fd_send_resp) {
     int clientfd, size, linesize, contentlen, i;
     char contentflag[MAXENTRY], reqbuf[MAXLINE], resbuf[GIANTLINE];
     rio_t rio;
@@ -176,8 +179,7 @@ size_t interact(struct reqheaderinfo *reqp, char *reqheadersp, int nreqheaders,
     sprintf(reqbuf, "%s /%s HTTP/1.1\r\n", reqp->method, reqp->path);
     if (Rio_writen_w(clientfd, reqbuf, strlen(reqbuf)) != 0)
         return -1;
-    while (nreqheaders > 0)
-    {
+    while (nreqheaders > 0) {
         if (Rio_writen_w(clientfd, reqheadersp, strlen(reqheadersp)) != 0)
             return -1;
         nreqheaders--;
@@ -192,8 +194,7 @@ size_t interact(struct reqheaderinfo *reqp, char *reqheadersp, int nreqheaders,
     size = contentlen = 0;
 
     // read response header
-    while ((linesize = Rio_readlineb(&rio, resbuf, GIANTLINE)) != 2)
-    {
+    while ((linesize = Rio_readlineb(&rio, resbuf, GIANTLINE)) != 2) {
         if (linesize < 2)
             return -1;
 
@@ -211,8 +212,7 @@ size_t interact(struct reqheaderinfo *reqp, char *reqheadersp, int nreqheaders,
     size += 2;
 
     // read response body and write to client one byte by one byte
-    for (i = 0; i < contentlen; ++i)
-    {
+    for (i = 0; i < contentlen; ++i) {
         if (Rio_readnb(&rio, resbuf, 1) != 1)
             return -1;
         if (Rio_writen_w(fd_send_resp, resbuf, 1) != 0)
@@ -231,12 +231,11 @@ size_t interact(struct reqheaderinfo *reqp, char *reqheadersp, int nreqheaders,
  *  Toolkit
  */
 
-/* 
+/*
  *  new_conn - malloc space for new connect fd
  */
-struct conninfo *new_conn(int fd, struct sockaddr_storage addr)
-{
-    struct conninfo *p = (struct conninfo *)malloc(sizeof(struct conninfo));
+struct conninfo* new_conn(int fd, struct sockaddr_storage addr) {
+    struct conninfo* p = (struct conninfo*)malloc(sizeof(struct conninfo));
     p->fd = fd;
     p->sockaddr_browser = addr;
     return p;
@@ -245,8 +244,7 @@ struct conninfo *new_conn(int fd, struct sockaddr_storage addr)
 /*
  *  parse_req - request received handler
  */
-int parse_req(char *buf, struct reqheaderinfo *reqp)
-{
+int parse_req(char* buf, struct reqheaderinfo* reqp) {
     char uri[MAXLINE], version[MAXENTRY];
     int rc = sscanf(buf, "%s %s %s", reqp->method, uri, version);
     if (rc != 3)
@@ -258,9 +256,8 @@ int parse_req(char *buf, struct reqheaderinfo *reqp)
 /*
  *  getbrowserip - get dotted decimal notation by browser addr
  */
-int getbrowserip(struct sockaddr_storage *sockaddr_browser, char *browserip)
-{
-    struct in_addr inaddr = ((struct sockaddr_in *)sockaddr_browser)->sin_addr;
+int getbrowserip(struct sockaddr_storage* sockaddr_browser, char* browserip) {
+    struct in_addr inaddr = ((struct sockaddr_in*)sockaddr_browser)->sin_addr;
     if (browserip == NULL)
         return -1;
 
@@ -271,8 +268,7 @@ int getbrowserip(struct sockaddr_storage *sockaddr_browser, char *browserip)
 /*
  *  eliminate_space - elimate
  */
-void eliminate_space(char *p)
-{
+void eliminate_space(char* p) {
     if (!p)
         return;
 
@@ -289,15 +285,13 @@ void eliminate_space(char *p)
  * path must already be allocated and should be at least MAXENTRY
  * bytes. Return -1 if there are any problems.
  */
-int parse_uri(char *uri, char *server_ip, char *path, char *port)
-{
-    char *hostbegin;
-    char *hostend;
-    char *pathbegin;
+int parse_uri(char* uri, char* server_ip, char* path, char* port) {
+    char* hostbegin;
+    char* hostend;
+    char* pathbegin;
     int len;
 
-    if (strncasecmp(uri, "http://", 7) != 0)
-    {
+    if (strncasecmp(uri, "http://", 7) != 0) {
         server_ip[0] = '\0';
         return -1;
     }
@@ -312,26 +306,20 @@ int parse_uri(char *uri, char *server_ip, char *path, char *port)
     server_ip[len] = '\0';
 
     /* Extract the port number */
-    if (*hostend == ':')
-    {
-        char *p = hostend + 1;
+    if (*hostend == ':') {
+        char* p = hostend + 1;
         while (isdigit(*p))
             *port++ = *p++;
         *port = '\0';
-    }
-    else
-    {
+    } else {
         strcpy(port, "80");
     }
 
     /* Extract the path */
     pathbegin = strchr(hostbegin, '/');
-    if (pathbegin == NULL)
-    {
+    if (pathbegin == NULL) {
         path[0] = '\0';
-    }
-    else
-    {
+    } else {
         pathbegin++;
         strcpy(path, pathbegin);
     }
@@ -349,9 +337,10 @@ int parse_uri(char *uri, char *server_ip, char *path, char *port)
  * (sockaddr), the URI from the request (uri), the number of bytes
  * from the server (size).
  */
-void format_log_entry(char *logstring, struct sockaddr_in *sockaddr, char *uri,
-                      size_t size)
-{
+void format_log_entry(char* logstring,
+                      struct sockaddr_in* sockaddr,
+                      char* uri,
+                      size_t size) {
     time_t now;
     char time_str[MAXENTRY];
     unsigned long host;
